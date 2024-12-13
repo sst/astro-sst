@@ -1,0 +1,19 @@
+{
+  "name": "monorepo",
+  "module": "index.ts",
+  "type": "module",
+  "workspaces": [
+    "packages/astro-sst"
+  ],
+  "scripts": {
+    "release": "bun run --filter=\"astro-sst\" build && changeset publish"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "@changesets/cli": "2.27.10",
+    "prettier": "3.4.2",
+    "typescript": "5.6.3"
+  }
+}
