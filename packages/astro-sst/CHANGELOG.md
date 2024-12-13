@@ -1,5 +1,11 @@
 # astro-sst
 
+## 2.45.2
+
+### Patch Changes
+
+- 263bcb0: Migrating to astro-sst repo
+
 ## 2.44.0
 
 ## 2.43.8
