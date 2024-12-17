@@ -1,12 +1,13 @@
 import type {
   AstroConfig,
-  RouteData,
+  AstroIntegration,
+  IntegrationRouteData,
   RouteType,
   ValidRedirectStatus,
 } from "astro";
 import { join, relative } from "path";
 import { writeFile } from "fs/promises";
-import { fileURLToPath, parse } from "url";
+import { fileURLToPath } from "url";
 import type {
   DeploymentStrategy,
   OutputMode,
@@ -18,13 +19,8 @@ import type {
 export type BuildMetaFileName = "sst.buildMeta.json";
 export const BUILD_META_FILE_NAME: BuildMetaFileName = "sst.buildMeta.json";
 
-type BuildResults = {
-  pages: {
-    pathname: string;
-  }[];
-  dir: URL;
-  routes: RouteData[];
-};
+type BuildFunction = AstroIntegration['hooks']['astro:build:done'];
+export type BuildResult = Parameters<NonNullable<BuildFunction>>[0];
 
 type SerializableRoute = {
   route: string;
@@ -45,7 +41,6 @@ export type BuildMetaConfig = {
   serverBuildOutputFile: string;
   clientBuildOutputDir: string;
   clientBuildVersionedSubDir: string;
-  serverRoutes: string[];
   routes: Array<{
     route: string;
     type: RouteType;
@@ -59,13 +54,12 @@ export type BuildMetaConfig = {
 export type IntegrationConfig = {
   deploymentStrategy: DeploymentStrategy;
   responseMode: ResponseMode;
-  serverRoutes: string[];
 };
 
 export class BuildMeta {
   protected static integrationConfig: IntegrationConfig;
   protected static astroConfig: AstroConfig;
-  protected static buildResults: BuildResults;
+  protected static buildResult: BuildResult;
 
   public static setIntegrationConfig(config: IntegrationConfig) {
     this.integrationConfig = config;
@@ -76,7 +70,7 @@ export class BuildMeta {
   }
 
   private static getRedirectPath(
-    { segments }: RouteData,
+    { segments }: IntegrationRouteData,
     trailingSlash: TrailingSlash
   ) {
     let i = 0;
@@ -93,8 +87,8 @@ export class BuildMeta {
     ).replace(/\/+/g, "/");
   }
 
-  public static setBuildResults(buildResults: BuildResults) {
-    this.buildResults = buildResults;
+  public static setBuildResults(buildResult: BuildResult) {
+    this.buildResult = buildResult;
   }
 
   private static get domainName() {
@@ -102,12 +96,13 @@ export class BuildMeta {
       typeof this.astroConfig.site === "string" &&
       this.astroConfig.site.length > 0
     ) {
-      return parse(this.astroConfig.site).hostname ?? undefined;
+      const siteUrl = new URL(this.astroConfig.site);
+      return siteUrl.hostname ?? undefined;
     }
   }
 
   private static getSerializableRoute(
-    route: RouteData,
+    route: IntegrationRouteData,
     trailingSlash: TrailingSlash,
     outputMode: OutputMode
   ): SerializableRoute {
@@ -130,7 +125,7 @@ export class BuildMeta {
   }
 
   private static getTrailingSlashRedirect(
-    route: RouteData,
+    route: IntegrationRouteData,
     trailingSlash: "always" | "never"
   ) {
     if (trailingSlash === "never") {
@@ -158,8 +153,8 @@ export class BuildMeta {
       buildExportName
     );
 
-    const routes = this.buildResults.routes
-      .map((route) => {
+    const routes = this.buildResult.routes
+      .map((route: IntegrationRouteData) => {
         const routeSet = [
           this.getSerializableRoute(
             route,
@@ -222,7 +217,6 @@ export class BuildMeta {
       ),
       clientBuildVersionedSubDir: this.astroConfig.build.assets,
       routes,
-      serverRoutes: this.integrationConfig.serverRoutes,
     } satisfies BuildMetaConfig;
 
     /**
