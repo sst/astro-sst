@@ -7,7 +7,7 @@ import type {
 } from "astro";
 import { join, relative } from "path";
 import { writeFile } from "fs/promises";
-import { fileURLToPath, parse } from "url";
+import { fileURLToPath } from "url";
 import type {
   DeploymentStrategy,
   OutputMode,
