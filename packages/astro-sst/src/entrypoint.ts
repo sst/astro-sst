@@ -47,6 +47,10 @@ export function createExports(
 ) {
   debug("handlerInit", responseMode);
   debug("astroVersion", ASTRO_VERSION);
+  if (astroMajorVersion < 5) {
+    throw new Error("This version of Astro is not supported by astro-sst. Please upgrade to Astro 5 or later.");
+  }
+
   const isStreaming = responseMode === "stream";
   const app = new NodeApp(manifest);
 
@@ -68,26 +72,13 @@ export function createExports(
       return streamError(404, "Not found", responseStream);
     }
 
-    let response: Response;
-
-    if (astroMajorVersion <= 3) {
-      // Astro 3.x and below use RouteData only
-      debug("routeData", routeData);
-
-      // Process request
-      response = await app.render(request, routeData);
-    } else {
-      // Astro 4.x and above use RenderOptions
-      const renderOptions: RenderOptions = {
-        routeData,
-        clientAddress: internalEvent.headers['x-forwarded-for'] || internalEvent.remoteAddress,
-      }
-
-      debug("renderOptions", renderOptions);
-
-      // Process request
-      response = await app.render(request, renderOptions);
+    const renderOptions: RenderOptions = {
+      routeData,
+      clientAddress: internalEvent.headers['x-forwarded-for'] || internalEvent.remoteAddress,
     }
+
+    debug("renderOptions", renderOptions);
+    const response = await app.render(request, renderOptions);
 
     // Stream response back to Cloudfront
     const convertedResponse = await convertTo({
