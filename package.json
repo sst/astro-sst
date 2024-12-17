@@ -6,6 +6,7 @@
     "packages/astro-sst"
   ],
   "scripts": {
+    "build": "bun run --filter=\"astro-sst\" build",
     "release": "bun run --filter=\"astro-sst\" build && changeset publish"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@ import type {
   ResponseMode,
   DeploymentStrategy,
 } from "./lib/types.js";
-import { BuildMeta, IntegrationConfig } from "./lib/build-meta.js";
+import { BuildMeta, IntegrationConfig, BuildResult } from "./lib/build-meta.js";
 
 const PACKAGE_NAME = "astro-sst";
 
@@ -24,17 +24,13 @@ function getAdapter({
     exports: ["handler"],
     adapterFeatures: {
       edgeMiddleware: false,
-      functionPerRoute: false,
+      buildOutput: isStatic ? "static" : "server",
     },
     supportedAstroFeatures: {
       staticOutput: "stable",
       hybridOutput: "stable",
       serverOutput: "stable",
-      assets: {
-        supportKind: "stable",
-        isSharpCompatible: true,
-        isSquooshCompatible: false,
-      },
+      sharpImageService: "stable",
     },
   };
 
@@ -44,9 +40,7 @@ function getAdapter({
         name: baseConfig.name,
         supportedAstroFeatures: {
           ...baseConfig.supportedAstroFeatures,
-          assets: {
-            supportKind: "unsupported",
-          },
+          sharpImageService: "unsupported",
         },
       };
 }
@@ -148,7 +142,7 @@ export default function createIntegration(
           })
         );
       },
-      "astro:build:done": async (buildResults) => {
+      "astro:build:done": async (buildResults: BuildResult) => {
         BuildMeta.setBuildResults(buildResults);
         await BuildMeta.exportBuildMeta();
       },
