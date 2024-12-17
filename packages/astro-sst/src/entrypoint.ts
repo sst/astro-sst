@@ -1,5 +1,4 @@
 import type { SSRManifest } from "astro";
-import { version as ASTRO_VERSION } from "astro/package.json";
 import type {
   APIGatewayProxyEventV2,
   CloudFrontRequestEvent,
@@ -9,8 +8,6 @@ import { NodeApp, applyPolyfills } from "astro/app/node";
 import { InternalEvent, convertFrom, convertTo } from "./lib/event-mapper.js";
 import { debug } from "./lib/logger.js";
 import { RenderOptions } from "astro/app";
-
-const astroMajorVersion = parseInt(ASTRO_VERSION.split(".")[0] ?? 0);
 
 applyPolyfills()
 
@@ -46,10 +43,6 @@ export function createExports(
   { responseMode }: { responseMode: ResponseMode }
 ) {
   debug("handlerInit", responseMode);
-  debug("astroVersion", ASTRO_VERSION);
-  if (astroMajorVersion < 5) {
-    throw new Error("This version of Astro is not supported by astro-sst. Please upgrade to Astro 5 or later.");
-  }
 
   const isStreaming = responseMode === "stream";
   const app = new NodeApp(manifest);
