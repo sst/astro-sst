@@ -21,12 +21,11 @@ export type EntrypointParameters = {
   | {}
   | { responseMode: ResponseMode }
   | { deploymentStrategy: "static"; responseMode?: "buffer" }
-  | { deploymentStrategy: "edge"; responseMode?: "buffer" }
   | { deploymentStrategy: "regional"; responseMode?: ResponseMode }
 );
 
-export type DeploymentStrategy = "edge" | "regional" | "static";
+export type DeploymentStrategy = "regional" | "static";
 export type ResponseMode = "stream" | "buffer";
-export type OutputMode = "server" | "static" | "hybrid";
+export type OutputMode = "server" | "static";
 export type PageResolution = "file" | "directory" | "preserve";
 export type TrailingSlash = "never" | "always" | "ignore";

@@ -41,7 +41,6 @@ export type BuildMetaConfig = {
   serverBuildOutputFile: string;
   clientBuildOutputDir: string;
   clientBuildVersionedSubDir: string;
-  serverRoutes: string[];
   routes: Array<{
     route: string;
     type: RouteType;
@@ -55,7 +54,6 @@ export type BuildMetaConfig = {
 export type IntegrationConfig = {
   deploymentStrategy: DeploymentStrategy;
   responseMode: ResponseMode;
-  serverRoutes: string[];
 };
 
 export class BuildMeta {
@@ -219,7 +217,6 @@ export class BuildMeta {
       ),
       clientBuildVersionedSubDir: this.astroConfig.build.assets,
       routes,
-      serverRoutes: this.integrationConfig.serverRoutes,
     } satisfies BuildMetaConfig;
 
     /**

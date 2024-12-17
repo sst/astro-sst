@@ -28,7 +28,6 @@ function getAdapter({
     },
     supportedAstroFeatures: {
       staticOutput: "stable",
-      hybridOutput: "stable",
       serverOutput: "stable",
       sharpImageService: "stable",
     },
@@ -51,7 +50,6 @@ export default function createIntegration(
   const integrationConfig: IntegrationConfig = {
     deploymentStrategy: entrypointParameters.deploymentStrategy ?? "regional",
     responseMode: entrypointParameters.responseMode ?? "buffer",
-    serverRoutes: entrypointParameters.serverRoutes ?? [],
   };
 
   if (
