@@ -57,7 +57,9 @@ export default function createIntegration(
   debug("astroVersion", ASTRO_VERSION);
 
   if (astroMajorVersion < 5) {
-    throw new Error("This version of Astro is not supported by astro-sst. Please upgrade to Astro 5 or later.");
+    throw new Error(
+      "astro-sst requires Astro 5 or newer. Please upgrade your Astro app. Alternatively, use v2 of astro-sst by pinning to `astro-sst@two`."
+    );
   } else if (
     integrationConfig.deploymentStrategy !== "regional" &&
     integrationConfig.responseMode === "stream"
