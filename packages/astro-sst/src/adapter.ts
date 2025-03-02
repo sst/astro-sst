@@ -5,11 +5,11 @@ import type {
   DeploymentStrategy,
 } from "./lib/types.js";
 import { BuildMeta, IntegrationConfig, BuildResult } from "./lib/build-meta.js";
-import { version as ASTRO_VERSION } from "astro/package.json";
+import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
 import { debug } from "./lib/logger.js";
 
 const PACKAGE_NAME = "astro-sst";
-const astroMajorVersion = parseInt(ASTRO_VERSION.split(".")[0] ?? 0);
+const astroMajorVersion = parseInt(ASTRO_PACKAGE.version.split(".")[0] ?? 0);
 
 function getAdapter({
   deploymentStrategy,
@@ -54,7 +54,7 @@ export default function createIntegration(
     deploymentStrategy: entrypointParameters.deploymentStrategy ?? "regional",
     responseMode: entrypointParameters.responseMode ?? "buffer",
   };
-  debug("astroVersion", ASTRO_VERSION);
+  debug("astroVersion", ASTRO_PACKAGE.version);
 
   if (astroMajorVersion < 5) {
     throw new Error(

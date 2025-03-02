@@ -9,7 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "resolveJsonModule": true,
-    "module": "ES2020",
+    "module": "esnext",
     "outDir": "./dist",
     "target": "ES2020"
   }
