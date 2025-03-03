@@ -1,5 +1,11 @@
 # astro-sst
 
+## 3.0.2
+
+### Patch Changes
+
+- 8a4a390: Update copy
+
 ## 2.45.2
 
 ### Patch Changes
