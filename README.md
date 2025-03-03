@@ -40,7 +40,6 @@ If you prefer to install the adapter manually instead, complete the following tw
 You can utilize different deployment depending on your needs:
 
 - `regional`: SSR inside a [Lambda function](https://aws.amazon.com/lambda/) with [CloudFront](https://aws.amazon.com/cloudfront/) cached assets. (_default_)
-- `edge`: SSR inside a [Lambda@Edge function](https://aws.amazon.com/lambda/edge/) with [CloudFront](https://aws.amazon.com/cloudfront/) cached assets.
 - `static`: SSG assets deployed to [S3](https://aws.amazon.com/s3/) with [CloudFront](https://aws.amazon.com/cloudfront/) cached assets.
 
 You can change where to target by changing the import:
@@ -52,7 +51,7 @@ import aws from "astro-sst";
 export default defineConfig({
   output: "server",
   adapter: aws({
-    deploymentStrategy: "edge",
+    deploymentStrategy: "static",
   }),
 });
 ```
@@ -73,28 +72,6 @@ export default defineConfig({
   adapter: aws({
     deploymentStrategy: "regional",
     responseMode: "stream",
-  }),
-});
-```
-
-### Server Routes
-
-When utilizing `regional` deployment strategy, server routes should be defined for any routes utilizing non-`GET` methods:
-
-```js title="astro.config.mjs" ins={2, 5-6}
-import { defineConfig } from "astro/config";
-import aws from "astro-sst";
-
-export default defineConfig({
-  output: "server",
-  adapter: aws({
-    deploymentStrategy: "regional",
-    serverRoutes: [
-      "feedback", // Feedback page which requires POST method
-      "login",    // Login page which requires POST method
-      "user/*",   // Directory of user routes which are all SSR
-      "api/*",    // Directory of API endpoints which require all methods
-    ],
   }),
 });
 ```

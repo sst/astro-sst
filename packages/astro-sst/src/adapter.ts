@@ -4,9 +4,12 @@ import type {
   ResponseMode,
   DeploymentStrategy,
 } from "./lib/types.js";
-import { BuildMeta, IntegrationConfig } from "./lib/build-meta.js";
+import { BuildMeta, IntegrationConfig, BuildResult } from "./lib/build-meta.js";
+import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
+import { debug } from "./lib/logger.js";
 
 const PACKAGE_NAME = "astro-sst";
+const astroMajorVersion = parseInt(ASTRO_PACKAGE.version.split(".")[0] ?? 0);
 
 function getAdapter({
   deploymentStrategy,
@@ -24,17 +27,12 @@ function getAdapter({
     exports: ["handler"],
     adapterFeatures: {
       edgeMiddleware: false,
-      functionPerRoute: false,
+      buildOutput: isStatic ? "static" : "server",
     },
     supportedAstroFeatures: {
       staticOutput: "stable",
-      hybridOutput: "stable",
       serverOutput: "stable",
-      assets: {
-        supportKind: "stable",
-        isSharpCompatible: true,
-        isSquooshCompatible: false,
-      },
+      sharpImageService: "stable",
     },
   };
 
@@ -44,9 +42,7 @@ function getAdapter({
         name: baseConfig.name,
         supportedAstroFeatures: {
           ...baseConfig.supportedAstroFeatures,
-          assets: {
-            supportKind: "unsupported",
-          },
+          sharpImageService: "unsupported",
         },
       };
 }
@@ -57,10 +53,14 @@ export default function createIntegration(
   const integrationConfig: IntegrationConfig = {
     deploymentStrategy: entrypointParameters.deploymentStrategy ?? "regional",
     responseMode: entrypointParameters.responseMode ?? "buffer",
-    serverRoutes: entrypointParameters.serverRoutes ?? [],
   };
+  debug("astroVersion", ASTRO_PACKAGE.version);
 
-  if (
+  if (astroMajorVersion < 5) {
+    throw new Error(
+      "astro-sst requires Astro 5 or newer. Please upgrade your Astro app. Alternatively, use v2 of astro-sst by pinning to `astro-sst@two`."
+    );
+  } else if (
     integrationConfig.deploymentStrategy !== "regional" &&
     integrationConfig.responseMode === "stream"
   ) {
@@ -148,7 +148,7 @@ export default function createIntegration(
           })
         );
       },
-      "astro:build:done": async (buildResults) => {
+      "astro:build:done": async (buildResults: BuildResult) => {
         BuildMeta.setBuildResults(buildResults);
         await BuildMeta.exportBuildMeta();
       },
