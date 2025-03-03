@@ -20,29 +20,38 @@ function getAdapter({
 }): AstroAdapter {
   const isStatic = deploymentStrategy === "static";
 
-  const baseConfig: AstroAdapter = {
+  const baseConfig: Pick<AstroAdapter, "name" | "supportedAstroFeatures"> = {
     name: PACKAGE_NAME,
-    serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
-    args: { responseMode },
-    exports: ["handler"],
-    adapterFeatures: {
-      edgeMiddleware: false,
-      buildOutput: isStatic ? "static" : "server",
-    },
     supportedAstroFeatures: {
       staticOutput: "stable",
       serverOutput: "stable",
-      sharpImageService: "stable",
     },
   };
 
-  return !isStatic
-    ? baseConfig
-    : {
-        name: baseConfig.name,
+  return isStatic
+    ? {
+        ...baseConfig,
+        adapterFeatures: {
+          edgeMiddleware: false,
+          buildOutput: "static",
+        },
         supportedAstroFeatures: {
           ...baseConfig.supportedAstroFeatures,
           sharpImageService: "unsupported",
+        },
+      }
+    : {
+        ...baseConfig,
+        serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
+        args: { responseMode },
+        exports: ["handler"],
+        adapterFeatures: {
+          edgeMiddleware: false,
+          buildOutput: "server",
+        },
+        supportedAstroFeatures: {
+          ...baseConfig.supportedAstroFeatures,
+          sharpImageService: "stable",
         },
       };
 }
