@@ -14,17 +14,9 @@ export type RequestHandler = (
 ) => void | Promise<void>;
 
 export type EntrypointParameters = {
-  deploymentStrategy?: DeploymentStrategy;
   responseMode?: ResponseMode;
-  serverRoutes?: string[];
-} & (
-  | {}
-  | { responseMode: ResponseMode }
-  | { deploymentStrategy: "static"; responseMode?: "buffer" }
-  | { deploymentStrategy: "regional"; responseMode?: ResponseMode }
-);
+};
 
-export type DeploymentStrategy = "regional" | "static";
 export type ResponseMode = "stream" | "buffer";
 export type OutputMode = "server" | "static";
 export type PageResolution = "file" | "directory" | "preserve";

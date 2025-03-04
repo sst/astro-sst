@@ -1,57 +1,16 @@
-import type { AstroAdapter, AstroIntegration } from "astro";
-import type {
-  EntrypointParameters,
-  ResponseMode,
-  DeploymentStrategy,
-} from "./lib/types.js";
-import { BuildMeta, IntegrationConfig, BuildResult } from "./lib/build-meta.js";
+import type { AstroIntegration } from "astro";
+import type { EntrypointParameters } from "./lib/types.js";
+import { BuildMeta, IntegrationConfig } from "./lib/build-meta.js";
 import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
 import { debug } from "./lib/logger.js";
 
 const PACKAGE_NAME = "astro-sst";
 const astroMajorVersion = parseInt(ASTRO_PACKAGE.version.split(".")[0] ?? 0);
 
-function getAdapter({
-  deploymentStrategy,
-  responseMode,
-}: {
-  deploymentStrategy: DeploymentStrategy;
-  responseMode: ResponseMode;
-}): AstroAdapter {
-  const isStatic = deploymentStrategy === "static";
-
-  const baseConfig: AstroAdapter = {
-    name: PACKAGE_NAME,
-    serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
-    args: { responseMode },
-    exports: ["handler"],
-    adapterFeatures: {
-      edgeMiddleware: false,
-      buildOutput: isStatic ? "static" : "server",
-    },
-    supportedAstroFeatures: {
-      staticOutput: "stable",
-      serverOutput: "stable",
-      sharpImageService: "stable",
-    },
-  };
-
-  return !isStatic
-    ? baseConfig
-    : {
-        name: baseConfig.name,
-        supportedAstroFeatures: {
-          ...baseConfig.supportedAstroFeatures,
-          sharpImageService: "unsupported",
-        },
-      };
-}
-
 export default function createIntegration(
   entrypointParameters: EntrypointParameters = {}
 ): AstroIntegration {
   const integrationConfig: IntegrationConfig = {
-    deploymentStrategy: entrypointParameters.deploymentStrategy ?? "regional",
     responseMode: entrypointParameters.responseMode ?? "buffer",
   };
   debug("astroVersion", ASTRO_PACKAGE.version);
@@ -60,50 +19,12 @@ export default function createIntegration(
     throw new Error(
       "astro-sst requires Astro 5 or newer. Please upgrade your Astro app. Alternatively, use v2 of astro-sst by pinning to `astro-sst@two`."
     );
-  } else if (
-    integrationConfig.deploymentStrategy !== "regional" &&
-    integrationConfig.responseMode === "stream"
-  ) {
-    throw new Error(
-      `Deployment strategy ${integrationConfig.deploymentStrategy} does not support streaming responses. Use 'buffer' response mode.`
-    );
   }
 
   return {
     name: PACKAGE_NAME,
     hooks: {
       "astro:config:setup": ({ config, updateConfig }) => {
-        if (
-          integrationConfig.deploymentStrategy !== "static" &&
-          config.output === "static"
-        ) {
-          // If the user has not specified an output, we will allow the Astro config to override default deployment strategy.
-          if (typeof entrypointParameters.deploymentStrategy === "undefined") {
-            integrationConfig.deploymentStrategy = "static";
-          } else {
-            console.log(
-              `[astro-sst] Overriding output to 'server' to support ${integrationConfig.deploymentStrategy} deployment.`
-            );
-            updateConfig({
-              output: "server",
-            });
-            config.output = "server";
-          }
-        }
-
-        if (
-          integrationConfig.deploymentStrategy === "static" &&
-          config.output !== "static"
-        ) {
-          console.log(
-            `[astro-sst] Overriding output to 'static' to support ${integrationConfig.deploymentStrategy} deployment.`
-          );
-          updateConfig({
-            output: "static",
-          });
-          config.output = "static";
-        }
-
         if (
           config.output !== "static" &&
           config.image.service.entrypoint.endsWith("sharp") &&
@@ -126,31 +47,37 @@ export default function createIntegration(
           });
         }
 
-        if (config.output !== "static") {
-          // Enable sourcemaps for SSR builds.
-          updateConfig({
-            vite: {
-              build: {
-                sourcemap: true,
-              },
+        // Enable sourcemaps for SSR builds.
+        updateConfig({
+          vite: {
+            build: {
+              sourcemap: true,
             },
-          });
-        }
+          },
+        });
 
         BuildMeta.setIntegrationConfig(integrationConfig);
       },
       "astro:config:done": ({ config, setAdapter }) => {
         BuildMeta.setAstroConfig(config);
-        setAdapter(
-          getAdapter({
-            deploymentStrategy: integrationConfig.deploymentStrategy,
-            responseMode: integrationConfig.responseMode,
-          })
-        );
+        setAdapter({
+          name: PACKAGE_NAME,
+          serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
+          args: { responseMode: integrationConfig.responseMode },
+          exports: ["handler"],
+          adapterFeatures: {
+            edgeMiddleware: false,
+            buildOutput: config.output,
+          },
+          supportedAstroFeatures: {
+            staticOutput: "stable",
+            serverOutput: "stable",
+            sharpImageService: "stable",
+          },
+        });
       },
-      "astro:build:done": async (buildResults: BuildResult) => {
-        BuildMeta.setBuildResults(buildResults);
-        await BuildMeta.exportBuildMeta();
+      "astro:build:done": async (buildResults) => {
+        await BuildMeta.exportBuildMeta(buildResults);
       },
     },
   };

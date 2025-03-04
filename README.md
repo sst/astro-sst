@@ -17,7 +17,7 @@ pnpm astro add astro-sst
 
 If you prefer to install the adapter manually instead, complete the following two steps:
 
-1. Install the AWS adapter to your project’s dependencies using your preferred package manager. If you’re using npm or aren’t sure, run this in the terminal:
+1. Install the AWS adapter to your project's dependencies using your preferred package manager. If you're using npm or aren't sure, run this in the terminal:
 
    ```bash
      npm install astro-sst
@@ -35,30 +35,9 @@ If you prefer to install the adapter manually instead, complete the following tw
    });
    ```
 
-### Deployment Strategies
-
-You can utilize different deployment depending on your needs:
-
-- `regional`: SSR inside a [Lambda function](https://aws.amazon.com/lambda/) with [CloudFront](https://aws.amazon.com/cloudfront/) cached assets. (_default_)
-- `static`: SSG assets deployed to [S3](https://aws.amazon.com/s3/) with [CloudFront](https://aws.amazon.com/cloudfront/) cached assets.
-
-You can change where to target by changing the import:
-
-```js title="astro.config.mjs" ins={2, 5-6}
-import { defineConfig } from "astro/config";
-import aws from "astro-sst";
-
-export default defineConfig({
-  output: "server",
-  adapter: aws({
-    deploymentStrategy: "static",
-  }),
-});
-```
-
 ### Response Mode
 
-When utilizing `regional` deployment strategy, you can choose how responses are handled:
+When utilizing `server` output, you can choose how responses are handled:
 
 - `buffer`: Responses are buffered and sent as a single response. (_default_)
 - `stream`: Responses are streamed as they are generated.
@@ -70,8 +49,23 @@ import aws from "astro-sst";
 export default defineConfig({
   output: "server",
   adapter: aws({
-    deploymentStrategy: "regional",
     responseMode: "stream",
   }),
 });
 ```
+
+## Upgrading from v2
+
+If you're upgrading from v2 of this adapter, here are the key changes to be aware of:
+
+### Remove `deploymentStrategy`
+
+The `deploymentStrategy` option has been removed. Instead, the `output` setting in your Astro config is now used to determine the deployment type:
+
+- If you previously used `deploymentStrategy: "regional"`, now set `output: "server"` in `astro.config.mjs`.
+- If you previously used `deploymentStrategy: "edge"`, now set `output: "server"` in `astro.config.mjs`. And configure [`regions`](https://sst.dev/docs/component/aws/astro#regions) on your Astro component after SST v3.9.23.
+- If you previously used `deploymentStrategy: "static"`, now set `output: "static"` in `astro.config.mjs`.
+
+### Remove `serverRoutes`
+
+The `serverRoutes` option has been removed.

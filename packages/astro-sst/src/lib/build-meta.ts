@@ -5,22 +5,19 @@ import type {
   RouteType,
   ValidRedirectStatus,
 } from "astro";
-import { join, relative } from "path";
-import { writeFile } from "fs/promises";
+import { dirname, join, relative } from "path";
+import { readFile, writeFile } from "fs/promises";
 import { fileURLToPath } from "url";
+import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
 import type {
-  DeploymentStrategy,
   OutputMode,
   PageResolution,
   ResponseMode,
   TrailingSlash,
 } from "./types";
 
-export type BuildMetaFileName = "sst.buildMeta.json";
-export const BUILD_META_FILE_NAME: BuildMetaFileName = "sst.buildMeta.json";
-
-type BuildFunction = AstroIntegration['hooks']['astro:build:done'];
-export type BuildResult = Parameters<NonNullable<BuildFunction>>[0];
+const __dirname = dirname(fileURLToPath(import.meta.url));
+export const BUILD_META_FILE_NAME = "sst.buildMeta.json";
 
 type SerializableRoute = {
   route: string;
@@ -32,8 +29,9 @@ type SerializableRoute = {
 };
 
 export type BuildMetaConfig = {
+  astroVersion: string;
+  pluginVersion: string;
   domainName?: string;
-  deploymentStrategy: DeploymentStrategy;
   responseMode: ResponseMode;
   outputMode: OutputMode;
   pageResolution: PageResolution;
@@ -52,14 +50,12 @@ export type BuildMetaConfig = {
 };
 
 export type IntegrationConfig = {
-  deploymentStrategy: DeploymentStrategy;
   responseMode: ResponseMode;
 };
 
 export class BuildMeta {
   protected static integrationConfig: IntegrationConfig;
   protected static astroConfig: AstroConfig;
-  protected static buildResult: BuildResult;
 
   public static setIntegrationConfig(config: IntegrationConfig) {
     this.integrationConfig = config;
@@ -85,10 +81,6 @@ export class BuildMeta {
         .join("/") +
       (trailingSlash === "always" ? "/" : "")
     ).replace(/\/+/g, "/");
-  }
-
-  public static setBuildResults(buildResult: BuildResult) {
-    this.buildResult = buildResult;
   }
 
   private static get domainName() {
@@ -117,8 +109,8 @@ export class BuildMeta {
         typeof route.redirectRoute !== "undefined"
           ? BuildMeta.getRedirectPath(route.redirectRoute, trailingSlash)
           : typeof route.redirect === "string"
-          ? route.redirect
-          : route.redirect?.destination,
+            ? route.redirect
+            : route.redirect?.destination,
       redirectStatus:
         typeof route.redirect === "object" ? route.redirect.status : undefined,
     };
@@ -145,15 +137,19 @@ export class BuildMeta {
     };
   }
 
-  public static async exportBuildMeta(buildExportName = BUILD_META_FILE_NAME) {
+  public static async exportBuildMeta(
+    buildResult: Parameters<
+      NonNullable<AstroIntegration["hooks"]["astro:build:done"]>
+    >[0]
+  ) {
     const rootDir = fileURLToPath(this.astroConfig.root);
 
     const outputPath = join(
       relative(rootDir, fileURLToPath(this.astroConfig.outDir)),
-      buildExportName
+      BUILD_META_FILE_NAME
     );
 
-    const routes = this.buildResult.routes
+    const routes = buildResult.routes
       .map((route: IntegrationRouteData) => {
         const routeSet = [
           this.getSerializableRoute(
@@ -200,9 +196,19 @@ export class BuildMeta {
       });
     }
 
+    let pluginVersion;
+    try {
+      pluginVersion = JSON.parse(
+        await readFile(join(__dirname, "..", "..", "package.json"), "utf-8")
+      ).version;
+    } catch (error) {
+      throw new Error("Failed to get plugin version", { cause: error });
+    }
+
     const buildMeta = {
+      astroVersion: ASTRO_PACKAGE.version,
+      pluginVersion: pluginVersion ?? "unknown",
       domainName: this.domainName ?? undefined,
-      deploymentStrategy: this.integrationConfig.deploymentStrategy,
       responseMode: this.integrationConfig.responseMode,
       outputMode: this.astroConfig.output,
       pageResolution: this.astroConfig.build.format,
