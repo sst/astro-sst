@@ -58,14 +58,9 @@ export default defineConfig({
 
 If you're upgrading from v2 of this adapter, here are the key changes to be aware of:
 
-### Remove `deploymentStrategy`
+1. Remove the `deploymentStrategy` option from `astro.config.mjs`. Instead, the `output` setting in your Astro config is now used to determine the deployment type:
+   - If you previously used `deploymentStrategy: "regional"`, now set `output: "server"` in `astro.config.mjs`.
+   - If you previously used `deploymentStrategy: "edge"`, now set `output: "server"` in `astro.config.mjs`. Update SST to v3.9.25 or later. And configure [`regions`](https://sst.dev/docs/component/aws/astro#regions) on your Astro component.
+   - If you previously used `deploymentStrategy: "static"`, now set `output: "static"` in `astro.config.mjs`.
 
-The `deploymentStrategy` option has been removed. Instead, the `output` setting in your Astro config is now used to determine the deployment type:
-
-- If you previously used `deploymentStrategy: "regional"`, now set `output: "server"` in `astro.config.mjs`.
-- If you previously used `deploymentStrategy: "edge"`, now set `output: "server"` in `astro.config.mjs`. And configure [`regions`](https://sst.dev/docs/component/aws/astro#regions) on your Astro component after SST v3.9.23.
-- If you previously used `deploymentStrategy: "static"`, now set `output: "static"` in `astro.config.mjs`.
-
-### Remove `serverRoutes`
-
-The `serverRoutes` option has been removed.
+2. Remove the `serverRoutes` option from `astro.config.mjs`
