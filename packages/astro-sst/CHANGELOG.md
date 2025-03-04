@@ -1,5 +1,11 @@
 # astro-sst
 
+## 3.0.4
+
+### Patch Changes
+
+- c7ade19: Remove `deploymentStrategy` option
+
 ## 3.0.2
 
 ### Patch Changes
