@@ -1,5 +1,11 @@
 # astro-sst
 
+## 3.1.0
+
+### Minor Changes
+
+- 8fe39af: Serve function serves /404 routes if set
+
 ## 3.0.4
 
 ### Patch Changes
