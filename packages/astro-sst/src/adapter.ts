@@ -77,6 +77,7 @@ export default function createIntegration(
         });
       },
       "astro:build:done": async (buildResults) => {
+        await BuildMeta.handlePrerendered404InSsr();
         await BuildMeta.exportBuildMeta(buildResults);
       },
     },

@@ -1,15 +1,15 @@
+import fs from "fs/promises";
 import type { SSRManifest } from "astro";
 import type {
   APIGatewayProxyEventV2,
   CloudFrontRequestEvent,
 } from "aws-lambda";
-import type { RequestHandler, ResponseMode, ResponseStream } from "./lib/types";
 import { NodeApp, applyPolyfills } from "astro/app/node";
+import type { RequestHandler, ResponseMode, ResponseStream } from "./lib/types";
 import { InternalEvent, convertFrom, convertTo } from "./lib/event-mapper.js";
 import { debug } from "./lib/logger.js";
-import { RenderOptions } from "astro/app";
 
-applyPolyfills()
+applyPolyfills();
 
 declare global {
   const awslambda: {
@@ -47,31 +47,49 @@ export function createExports(
   const isStreaming = responseMode === "stream";
   const app = new NodeApp(manifest);
 
+  function build404Url(url: string) {
+    const url404 = new URL(url);
+    url404.pathname = "/404";
+    url404.search = "";
+    url404.hash = "";
+    return url404.toString();
+  }
+
   async function streamHandler(
     event: APIGatewayProxyEventV2,
     responseStream: ResponseStream
   ) {
     debug("event", event);
 
-    // Parse Lambda event
     const internalEvent = convertFrom(event);
-
-    // Build request
-    const request = createRequest(internalEvent);
-
-    // Handle page not found
-    const routeData = app.match(request);
+    let request = createRequest(internalEvent);
+    let routeData = app.match(request);
     if (!routeData) {
-      return streamError(404, "Not found", responseStream);
+      // handle prerendered 404
+      if (await existsAsync("404.html")) {
+        return streamError(
+          404,
+          await fs.readFile("404.html", "utf-8"),
+          responseStream
+        );
+      }
+
+      // handle server-side 404
+      request = createRequest({
+        ...internalEvent,
+        url: build404Url(internalEvent.url),
+      });
+      routeData = app.match(request);
+      if (!routeData) {
+        return streamError(404, "Not found", responseStream);
+      }
     }
 
-    const renderOptions: RenderOptions = {
+    const response = await app.render(request, {
       routeData,
-      clientAddress: internalEvent.headers['x-forwarded-for'] || internalEvent.remoteAddress,
-    }
-
-    debug("renderOptions", renderOptions);
-    const response = await app.render(request, renderOptions);
+      clientAddress:
+        internalEvent.headers["x-forwarded-for"] || internalEvent.remoteAddress,
+    });
 
     // Stream response back to Cloudfront
     const convertedResponse = await convertTo({
@@ -89,31 +107,43 @@ export function createExports(
   ) {
     debug("event", event);
 
-    // Parse Lambda event
     const internalEvent = convertFrom(event);
-
-    // Build request
-    const request = createRequest(internalEvent);
-
-    // Handle page not found
-    const routeData = app.match(request);
+    let request = createRequest(internalEvent);
+    let routeData = app.match(request);
     if (!routeData) {
-      console.error("Not found");
-      return convertTo({
-        type: internalEvent.type,
-        response: new Response("Not found", { status: 404 }),
+      // handle prerendered 404
+      if (await existsAsync("404.html")) {
+        return convertTo({
+          type: internalEvent.type,
+          response: new Response(await fs.readFile("404.html", "utf-8"), {
+            status: 404,
+            headers: {
+              "Content-Type": "text/html",
+            },
+          }),
+        });
+      }
+
+      // handle server-side 404
+      request = createRequest({
+        ...internalEvent,
+        url: build404Url(internalEvent.url),
       });
+      routeData = app.match(request);
+      if (!routeData) {
+        return convertTo({
+          type: internalEvent.type,
+          response: new Response("Not found", { status: 404 }),
+        });
+      }
     }
-
-    const renderOptions: RenderOptions = {
-      routeData,
-      clientAddress: internalEvent.headers['x-forwarded-for'] || internalEvent.remoteAddress,
-    }
-
-    debug("renderOptions", renderOptions);
 
     // Process request
-    const response = await app.render(request, renderOptions);
+    const response = await app.render(request, {
+      routeData,
+      clientAddress:
+        internalEvent.headers["x-forwarded-for"] || internalEvent.remoteAddress,
+    });
 
     // Buffer response back to Cloudfront
     const convertedResponse = await convertTo({
@@ -143,8 +173,18 @@ export function streamError(
 
   responseStream = awslambda.HttpResponseStream.from(responseStream, {
     statusCode,
+    headers: {
+      "Content-Type": "text/html",
+    },
   });
 
   responseStream.write(error.toString());
   responseStream.end();
+}
+
+async function existsAsync(input: string) {
+  return fs
+    .access(input)
+    .then(() => true)
+    .catch(() => false);
 }

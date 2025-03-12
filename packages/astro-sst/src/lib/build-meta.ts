@@ -5,8 +5,9 @@ import type {
   RouteType,
   ValidRedirectStatus,
 } from "astro";
-import { dirname, join, relative } from "path";
-import { readFile, writeFile } from "fs/promises";
+import path, { dirname, join, relative } from "path";
+import { readFile, writeFile, copyFile } from "fs/promises";
+import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
 import type {
@@ -83,16 +84,6 @@ export class BuildMeta {
     ).replace(/\/+/g, "/");
   }
 
-  private static get domainName() {
-    if (
-      typeof this.astroConfig.site === "string" &&
-      this.astroConfig.site.length > 0
-    ) {
-      const siteUrl = new URL(this.astroConfig.site);
-      return siteUrl.hostname ?? undefined;
-    }
-  }
-
   private static getSerializableRoute(
     route: IntegrationRouteData,
     trailingSlash: TrailingSlash,
@@ -135,6 +126,17 @@ export class BuildMeta {
       pattern: route.pattern.toString().replace(/\\\/\$\/$/, "$/"),
       redirectPath: BuildMeta.getRedirectPath(route, trailingSlash),
     };
+  }
+
+  public static async handlePrerendered404InSsr() {
+    if (this.astroConfig.output !== "server") return;
+
+    try {
+      await copyFile(
+        path.join(fileURLToPath(this.astroConfig.build.client), "404.html"),
+        path.join(fileURLToPath(this.astroConfig.build.server), "404.html")
+      );
+    } catch (error) {}
   }
 
   public static async exportBuildMeta(
@@ -208,7 +210,11 @@ export class BuildMeta {
     const buildMeta = {
       astroVersion: ASTRO_PACKAGE.version,
       pluginVersion: pluginVersion ?? "unknown",
-      domainName: this.domainName ?? undefined,
+      domainName:
+        typeof this.astroConfig.site === "string" &&
+        this.astroConfig.site.length > 0
+          ? new URL(this.astroConfig.site).hostname
+          : undefined,
       responseMode: this.integrationConfig.responseMode,
       outputMode: this.astroConfig.output,
       pageResolution: this.astroConfig.build.format,
