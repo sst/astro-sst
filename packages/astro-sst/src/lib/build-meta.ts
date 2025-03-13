@@ -18,6 +18,7 @@ type ResponseMode = "stream" | "buffer";
 export type BuildMetaConfig = {
   astroVersion: string;
   pluginVersion: string;
+  base: AstroConfig["base"];
   domainName?: string;
   responseMode: ResponseMode;
   outputMode: AstroConfig["output"];
@@ -185,6 +186,7 @@ export class BuildMeta {
       JSON.stringify({
         astroVersion: ASTRO_PACKAGE.version,
         pluginVersion: await this.getAdapterVersion(),
+        base: this.astroConfig.base,
         // Extract domain name from site URL if available
         domainName:
           typeof this.astroConfig.site === "string" &&
