@@ -1,5 +1,4 @@
 import type { AstroIntegration } from "astro";
-import type { EntrypointParameters } from "./lib/types.js";
 import { BuildMeta, IntegrationConfig } from "./lib/build-meta.js";
 import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
 import { debug } from "./lib/logger.js";
@@ -8,11 +7,10 @@ const PACKAGE_NAME = "astro-sst";
 const astroMajorVersion = parseInt(ASTRO_PACKAGE.version.split(".")[0] ?? 0);
 
 export default function createIntegration(
-  entrypointParameters: EntrypointParameters = {}
+  entrypointParameters: IntegrationConfig = {
+    responseMode: "buffer",
+  }
 ): AstroIntegration {
-  const integrationConfig: IntegrationConfig = {
-    responseMode: entrypointParameters.responseMode ?? "buffer",
-  };
   debug("astroVersion", ASTRO_PACKAGE.version);
 
   if (astroMajorVersion < 5) {
@@ -56,14 +54,14 @@ export default function createIntegration(
           },
         });
 
-        BuildMeta.setIntegrationConfig(integrationConfig);
+        BuildMeta.setIntegrationConfig(entrypointParameters);
       },
       "astro:config:done": ({ config, setAdapter }) => {
         BuildMeta.setAstroConfig(config);
         setAdapter({
           name: PACKAGE_NAME,
           serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
-          args: { responseMode: integrationConfig.responseMode },
+          args: { responseMode: entrypointParameters.responseMode },
           exports: ["handler"],
           adapterFeatures: {
             edgeMiddleware: false,
@@ -78,7 +76,7 @@ export default function createIntegration(
       },
       "astro:build:done": async (buildResults) => {
         await BuildMeta.handlePrerendered404InSsr();
-        await BuildMeta.exportBuildMeta(buildResults);
+        await BuildMeta.writeToFile(buildResults);
       },
     },
   };

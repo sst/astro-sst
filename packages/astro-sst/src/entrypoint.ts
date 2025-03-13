@@ -3,11 +3,21 @@ import type { SSRManifest } from "astro";
 import type {
   APIGatewayProxyEventV2,
   CloudFrontRequestEvent,
+  Callback,
+  Context,
 } from "aws-lambda";
 import { NodeApp, applyPolyfills } from "astro/app/node";
-import type { RequestHandler, ResponseMode, ResponseStream } from "./lib/types";
+import type { IntegrationConfig } from "./lib/build-meta";
 import { InternalEvent, convertFrom, convertTo } from "./lib/event-mapper.js";
 import { debug } from "./lib/logger.js";
+import { ResponseStream } from "./lib/types";
+
+type RequestHandler = (
+  event: APIGatewayProxyEventV2,
+  streamResponse: ResponseStream,
+  context?: Context,
+  callback?: Callback
+) => void | Promise<void>;
 
 applyPolyfills();
 
@@ -40,7 +50,7 @@ function createRequest(internalEvent: InternalEvent) {
 
 export function createExports(
   manifest: SSRManifest,
-  { responseMode }: { responseMode: ResponseMode }
+  { responseMode }: IntegrationConfig
 ) {
   debug("handlerInit", responseMode);
 
