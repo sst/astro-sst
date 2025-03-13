@@ -1,5 +1,11 @@
 # astro-sst
 
+## 3.1.1
+
+### Patch Changes
+
+- 3361332: Refactor (no behavior change)
+
 ## 3.1.0
 
 ### Minor Changes
