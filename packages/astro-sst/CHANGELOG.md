@@ -1,5 +1,11 @@
 # astro-sst
 
+## 3.1.2
+
+### Patch Changes
+
+- 9f9b7be: Return base path
+
 ## 3.1.1
 
 ### Patch Changes
