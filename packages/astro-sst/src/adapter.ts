@@ -49,7 +49,7 @@ export default function createIntegration(
         updateConfig({
           vite: {
             build: {
-              sourcemap: true,
+              sourcemap: config.vite.build?.sourcemap ?? true,
             },
           },
         });
