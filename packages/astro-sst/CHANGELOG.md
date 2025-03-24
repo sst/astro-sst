@@ -1,5 +1,11 @@
 # astro-sst
 
+## 3.1.3
+
+### Patch Changes
+
+- bcbfb39: Respect vite sourcemap config
+
 ## 3.1.2
 
 ### Patch Changes
