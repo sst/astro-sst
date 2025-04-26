@@ -56,6 +56,9 @@ export default function createIntegration(
 
         BuildMeta.setIntegrationConfig(entrypointParameters);
       },
+      "astro:routes:resolved": ({ routes }) => {
+        BuildMeta.setRoutes(routes);
+      },
       "astro:config:done": ({ config, setAdapter }) => {
         BuildMeta.setAstroConfig(config);
         setAdapter({
@@ -74,9 +77,10 @@ export default function createIntegration(
           },
         });
       },
+
       "astro:build:done": async (buildResults) => {
         await BuildMeta.handlePrerendered404InSsr();
-        await BuildMeta.writeToFile(buildResults);
+        await BuildMeta.writeToFile();
       },
     },
   };
