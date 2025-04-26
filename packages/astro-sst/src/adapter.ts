@@ -56,8 +56,11 @@ export default function createIntegration(
 
         BuildMeta.setIntegrationConfig(entrypointParameters);
       },
-      "astro:config:done": ({ config, setAdapter }) => {
-        BuildMeta.setAstroConfig(config);
+      "astro:config:done": ({ config, setAdapter, buildOutput }) => {
+        BuildMeta.setAstroConfig({
+          ...config,
+          output: buildOutput,
+        });
         setAdapter({
           name: PACKAGE_NAME,
           serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
@@ -65,9 +68,10 @@ export default function createIntegration(
           exports: ["handler"],
           adapterFeatures: {
             edgeMiddleware: false,
-            buildOutput: config.output,
+            buildOutput: buildOutput,
           },
           supportedAstroFeatures: {
+            hybridOutput: "stable",
             staticOutput: "stable",
             serverOutput: "stable",
             sharpImageService: "stable",
