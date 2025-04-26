@@ -57,10 +57,8 @@ export default function createIntegration(
         BuildMeta.setIntegrationConfig(entrypointParameters);
       },
       "astro:config:done": ({ config, setAdapter, buildOutput }) => {
-        BuildMeta.setAstroConfig({
-          ...config,
-          output: buildOutput,
-        });
+        BuildMeta.setAstroConfig(config);
+        BuildMeta.setBuildOutput(buildOutput);
         setAdapter({
           name: PACKAGE_NAME,
           serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,

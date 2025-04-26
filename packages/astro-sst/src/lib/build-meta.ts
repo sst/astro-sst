@@ -44,6 +44,7 @@ export type IntegrationConfig = {
 export class BuildMeta {
   protected static integrationConfig: IntegrationConfig;
   protected static astroConfig: AstroConfig;
+  protected static buildOutput: AstroConfig["output"];
 
   public static setIntegrationConfig(config: IntegrationConfig) {
     this.integrationConfig = config;
@@ -51,6 +52,10 @@ export class BuildMeta {
 
   public static setAstroConfig(config: AstroConfig) {
     this.astroConfig = config;
+  }
+
+  public static setBuildOutput(output: AstroConfig["output"]) {
+    this.buildOutput = output;
   }
 
   public static async handlePrerendered404InSsr() {
@@ -81,7 +86,7 @@ export class BuildMeta {
     //      tries to serve /404, and cannot find the route. Server finally serves the
     //      404.html file manually bundled into it.
 
-    if (this.astroConfig.output !== "server") return;
+    if (this.buildOutput !== "server") return;
 
     try {
       await copyFile(
@@ -114,7 +119,7 @@ export class BuildMeta {
     // Process all routes and create any necessary redirects for trailing slashes
     const routes = buildResult.routes.flatMap((route) => {
       const trailingSlash = this.astroConfig.trailingSlash;
-      const isStatic = this.astroConfig.output === "static";
+      const isStatic = this.buildOutput === "static";
       const routeSet: BuildMetaConfig["routes"] = [
         {
           route: route.route + (trailingSlash === "always" ? "/" : ""),
@@ -163,7 +168,7 @@ export class BuildMeta {
     });
 
     // Add a catch-all route for static assets in static output mode
-    if (this.astroConfig.output === "static") {
+    if (this.buildOutput === "static") {
       // Find the index of the last asset route to insert after it
       const lastAssetIndex = routes.reduce(
         (acc, { route }, index) =>
@@ -194,7 +199,7 @@ export class BuildMeta {
             ? new URL(this.astroConfig.site).hostname
             : undefined,
         responseMode: this.integrationConfig.responseMode,
-        outputMode: this.astroConfig.output,
+        outputMode: this.buildOutput,
         pageResolution: this.astroConfig.build.format,
         trailingSlash: this.astroConfig.trailingSlash,
         serverBuildOutputFile: join(
@@ -207,7 +212,7 @@ export class BuildMeta {
           // Astro sets client build paths as if the site was configured for server deployment
           // even when it's actually static. We need to adjust the path to be correct.
           //
-          return this.astroConfig.output === "static" ? join(p, "../") : p;
+          return this.buildOutput === "static" ? join(p, "../") : p;
         })(),
         clientBuildVersionedSubDir: this.astroConfig.build.assets,
         routes,
