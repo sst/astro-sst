@@ -59,8 +59,9 @@ export default function createIntegration(
       "astro:routes:resolved": ({ routes }) => {
         BuildMeta.setRoutes(routes);
       },
-      "astro:config:done": ({ config, setAdapter }) => {
+      "astro:config:done": ({ config, setAdapter, buildOutput }) => {
         BuildMeta.setAstroConfig(config);
+        BuildMeta.setBuildOutput(buildOutput);
         setAdapter({
           name: PACKAGE_NAME,
           serverEntrypoint: `${PACKAGE_NAME}/entrypoint`,
@@ -68,9 +69,10 @@ export default function createIntegration(
           exports: ["handler"],
           adapterFeatures: {
             edgeMiddleware: false,
-            buildOutput: config.output,
+            buildOutput: buildOutput,
           },
           supportedAstroFeatures: {
+            hybridOutput: "stable",
             staticOutput: "stable",
             serverOutput: "stable",
             sharpImageService: "stable",
@@ -78,7 +80,7 @@ export default function createIntegration(
         });
       },
 
-      "astro:build:done": async (buildResults) => {
+      "astro:build:done": async () => {
         await BuildMeta.handlePrerendered404InSsr();
         await BuildMeta.writeToFile();
       },
