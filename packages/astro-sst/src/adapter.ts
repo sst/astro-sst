@@ -56,6 +56,9 @@ export default function createIntegration(
 
         BuildMeta.setIntegrationConfig(entrypointParameters);
       },
+      "astro:routes:resolved": ({ routes }) => {
+        BuildMeta.setRoutes(routes);
+      },
       "astro:config:done": ({ config, setAdapter, buildOutput }) => {
         BuildMeta.setAstroConfig(config);
         BuildMeta.setBuildOutput(buildOutput);
@@ -76,9 +79,10 @@ export default function createIntegration(
           },
         });
       },
-      "astro:build:done": async (buildResults) => {
+
+      "astro:build:done": async () => {
         await BuildMeta.handlePrerendered404InSsr();
-        await BuildMeta.writeToFile(buildResults);
+        await BuildMeta.writeToFile();
       },
     },
   };

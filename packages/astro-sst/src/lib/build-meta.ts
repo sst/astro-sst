@@ -1,14 +1,13 @@
 import type {
   AstroConfig,
-  AstroIntegration,
-  IntegrationRouteData,
+  IntegrationResolvedRoute,
   RouteType,
   ValidRedirectStatus,
 } from "astro";
-import { fileURLToPath } from "url";
-import path, { dirname, join, relative } from "path";
-import { readFile, writeFile, copyFile } from "fs/promises";
 import ASTRO_PACKAGE from "astro/package.json" with { type: "json" };
+import { copyFile, readFile, writeFile } from "fs/promises";
+import path, { dirname, join, relative } from "path";
+import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const BUILD_META_FILE_NAME = "sst.buildMeta.json";
@@ -44,6 +43,7 @@ export type IntegrationConfig = {
 export class BuildMeta {
   protected static integrationConfig: IntegrationConfig;
   protected static astroConfig: AstroConfig;
+  protected static routes: IntegrationResolvedRoute[];
   protected static buildOutput: AstroConfig["output"];
 
   public static setIntegrationConfig(config: IntegrationConfig) {
@@ -52,6 +52,10 @@ export class BuildMeta {
 
   public static setAstroConfig(config: AstroConfig) {
     this.astroConfig = config;
+  }
+
+  public static setRoutes(routes: IntegrationResolvedRoute[]) {
+    this.routes = routes;
   }
 
   public static setBuildOutput(output: AstroConfig["output"]) {
@@ -103,11 +107,7 @@ export class BuildMeta {
    * Processes all routes from the build result, handles trailing slash redirects,
    * adds asset routes, and writes the complete configuration to the output directory.
    */
-  public static async writeToFile(
-    buildResult: Parameters<
-      NonNullable<AstroIntegration["hooks"]["astro:build:done"]>
-    >[0]
-  ) {
+  public static async writeToFile() {
     const rootDir = fileURLToPath(this.astroConfig.root);
     const clientOutputPath = fileURLToPath(this.astroConfig.build.client);
     const serverOutputPath = fileURLToPath(this.astroConfig.build.server);
@@ -117,18 +117,20 @@ export class BuildMeta {
     );
 
     // Process all routes and create any necessary redirects for trailing slashes
-    const routes = buildResult.routes.flatMap((route) => {
+    const routes = this.routes.flatMap((route) => {
       const trailingSlash = this.astroConfig.trailingSlash;
       const isStatic = this.buildOutput === "static";
       const routeSet: BuildMetaConfig["routes"] = [
         {
-          route: route.route + (trailingSlash === "always" ? "/" : ""),
+          route: route.pattern + (trailingSlash === "always" ? "/" : ""),
           type: route.type,
           // regex for matching request URL
           // ie.  "[fruit]/about.astro"- pattern is pattern: /^/([^/]+?)/about/?$/ fbanana/about") is "true"
           pattern: route.pattern.toString(),
           prerender:
-            route.type !== "redirect" ? isStatic || route.prerender : undefined,
+            route.type !== "redirect"
+              ? isStatic || route.isPrerendered
+              : undefined,
           // determine the redirect path based on different possible configurations
           redirectPath: route.redirectRoute
             ? BuildMeta.buildRedirectPath(route.redirectRoute)
@@ -144,11 +146,11 @@ export class BuildMeta {
       ];
 
       // Add trailing slash redirects for pages (except the root page)
-      if (route.type === "page" && route.route !== "/") {
+      if (route.type === "page" && route.pattern !== "/") {
         if (trailingSlash === "never") {
           // Add redirect from "/route/" to "/route" at the start
           routeSet.unshift({
-            route: route.route + "/",
+            route: route.pattern + "/",
             type: "redirect" as const,
             pattern: route.pattern.toString().replace(/\$\/$/, "\\/$/"),
             redirectPath: BuildMeta.buildRedirectPath(route),
@@ -156,7 +158,7 @@ export class BuildMeta {
         } else if (trailingSlash === "always") {
           // Add redirect from "/route" to "/route/" at the end
           routeSet.push({
-            route: route.route.replace(/\/$/, ""),
+            route: route.pattern.replace(/\/$/, ""),
             type: "redirect" as const,
             pattern: route.pattern.toString().replace(/\\\/\$\/$/, "$/"),
             redirectPath: BuildMeta.buildRedirectPath(route),
@@ -227,7 +229,7 @@ export class BuildMeta {
    *
    * Example: For "/blog/[id]" route with "always" trailing slash, returns "/blog/${1}/"
    */
-  private static buildRedirectPath({ segments }: IntegrationRouteData) {
+  private static buildRedirectPath({ segments }: IntegrationResolvedRoute) {
     const trailingSlash = this.astroConfig.trailingSlash;
     let i = 0;
     return (
