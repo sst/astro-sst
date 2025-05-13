@@ -1,5 +1,12 @@
 # astro-sst
 
+## 3.1.4
+
+### Patch Changes
+
+- a934623: chore: update astro deprecation
+- bf4694f: feat: allow hybrid output
+
 ## 3.1.3
 
 ### Patch Changes
